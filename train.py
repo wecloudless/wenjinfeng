@@ -5,7 +5,8 @@
 
 author baiyu
 """
-
+import time
+t0 = time.time()
 import os
 import sys
 import argparse
@@ -49,6 +50,7 @@ def train(inputs, targets):
 
 
 def wecloud_train(epoch):
+    global accumulated_training_time
 
     start = time.time()
     net.train()
@@ -92,6 +94,9 @@ def wecloud_train(epoch):
             optimizer.param_groups[0]['lr'],        # lr
             time.time() - epoch_start_time,         # current epoch wall-clock time
         ))
+        batch_end_time = time.time()
+        accumulated_training_time += batch_end_time - batch_start_time
+        print("[profiling] step time: {}s, accumuated training time: {}s".format(batch_end_time - batch_start_time, accumulated_training_time))
         if args.profiling:
             logging.info(f"PROFILING: dataset total number {len(cifar100_training_loader.dataset)}, training one batch costs {time.time() - batch_start_time} seconds")
             return
@@ -166,6 +171,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     net = get_network(args)
+    accumulated_training_time = 0
 
     #data preprocessing:
     cifar100_training_loader = get_training_dataloader(
@@ -250,6 +256,9 @@ if __name__ == '__main__':
     if not os.path.exists(checkpoint_path):
         os.makedirs(checkpoint_path)
     checkpoint_path = os.path.join(checkpoint_path, '{net}-{epoch}-{type}.pth')
+    t1 = time.time()
+    print("[profiling] init time: {}s".format(t1-t0))
+    ccumulated_training_time = 0
 
     for epoch in range(1, args.epoch + 1):
         if epoch > args.warm:
